@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
-#include <io.h>
 FILE *pDosya;
 char kategoriler[7][50] = {"Atistirmalik", "Icecek", "Temel Gida", "Et Urunleri", "Temizlik & Ev Gerecleri", "Kisisel Bakim", "Sut & Kahvaltılık"};
 char sehirler[6][50] = {"Izmir", "Istanbul", "Bursa", "Ankara", "Antalya", "Adana"};
