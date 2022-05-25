@@ -8,7 +8,8 @@ char sehirler[6][50] = {"Izmir", "Istanbul", "Bursa", "Ankara", "Antalya", "Adan
 enum dosyaDegisim
 {
     silme = 0,
-    guncelleme = 1
+    guncelleme = 1,
+    za
 };
 enum tedarikciIslemleri
 {
