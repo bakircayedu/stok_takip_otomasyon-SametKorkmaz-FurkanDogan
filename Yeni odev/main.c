@@ -9,7 +9,7 @@ enum dosyaDegisim
 {
     silme = 0,
     guncelleme = 1,
-    za
+
 };
 enum tedarikciIslemleri
 {
