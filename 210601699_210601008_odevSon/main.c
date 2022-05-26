@@ -354,13 +354,13 @@ int tedarikcileriOku()
 
         return 0;
     }
-    while (structSayisi != 0)
+    for (i = 0; i < structSayisi; i++)
     {
         fread(&tedarikciListe, sizeof(struct tedarikci), 1, pDosya);
         ekranaTedarikciYaz(tedarikciListe);
-        structSayisi--;
     }
     fclose(pDosya);
+    return 1;
 }
 void tedarikciGiris()
 {
@@ -490,11 +490,14 @@ int tedarikciGuncelleme()
             system("cls");
             printf("Tedarikci guncellendi!\n\n");
         }
-        else
-        {
-            system("cls");
-            tedarikciGuncelleme();
-        }
+    }
+    else
+    {
+        system("cls");
+        printf("Girdiginiz tedarikci no bulunamadı!\nDevam etmek icin herhangi bir tusa basiniz\n");
+        getch();
+        system("cls");
+        tedarikciGuncelleme();
     }
 }
 int tedarikciSilme()
@@ -834,7 +837,6 @@ int main()
                 {
                     continue;
                 }
-                tedarikcileriOku();
                 printf("Tedarikci guncellemek icin (1)\nTedarikci silmek icin (2)\nGeri donus (3)\n");
                 scanf("%d", &komut);
                 if (komut == 1)
