@@ -6,6 +6,7 @@
 FILE *pDosya;
 char kategoriler[7][50] = {"Atistirmalik", "Icecek", "Temel Gida", "Et Urunleri", "Temizlik & Ev Gerecleri", "Kisisel Bakim", "Sut & Kahvaltılık"};
 char sehirler[6][50] = {"Izmir", "Istanbul", "Bursa", "Ankara", "Antalya", "Adana"};
+
 enum dosyaDegisim
 {
     silme = 0,
@@ -34,12 +35,18 @@ struct urun
 {
     char kategori[30], urunAdi[40];
     int urunKodu, urunSatisFiyati, stokMiktari;
-} urunListesi, urunOkumaListe, *guncellenenListe;
+} urunListesi, urunOkumaListe, *guncellenenListe, *siralanmisUrunListe;
 struct tedarikci
 {
     int no;
     char ad[50], adres[100], sehir[50];
 } tedarikciListe, *guncellenenTedarikListe;
+int sirala(const void *a, const void *b)
+{
+    struct urun *u1 = (struct urun *)a;
+    struct urun *u2 = (struct urun *)b;
+    return u1->urunKodu - u2->urunKodu;
+}
 void urunDosyaGuncelle(int urunKodu, struct urun guncellenenUrun, int islem)
 {
     int structMiktari, i = 0, k, len;
@@ -161,14 +168,14 @@ int urunBul(int urunKod, struct urun *okunanUrun)
 
 int urunleriOku()
 {
-    int i, structSayisi;
+    int i, structSayisi, k = 0;
 
     pDosya = fopen("urunListesi.txt", "r");
     fseek(pDosya, 0, SEEK_END);
     structSayisi = ftell(pDosya);
     structSayisi /= sizeof(struct urun);
     rewind(pDosya);
-
+    siralanmisUrunListe = malloc(sizeof(struct urun) * structSayisi);
     if (structSayisi == 0 || pDosya == NULL)
     {
         printf("Dosya bos!\n\n");
@@ -179,8 +186,14 @@ int urunleriOku()
     for (i = 0; i < structSayisi; i++)
     {
         fread(&urunListesi, sizeof(struct urun), 1, pDosya);
+        siralanmisUrunListe[k] = urunListesi;
+        k++;
+    }
+    qsort(siralanmisUrunListe, structSayisi, sizeof(struct urun), sirala);
+    for (k = 0; k < structSayisi; k++)
+    {
+        urunListesi = siralanmisUrunListe[k];
         ekranUrunYaz(urunListesi);
-        printf("\n");
     }
     fclose(pDosya);
     return 1;
