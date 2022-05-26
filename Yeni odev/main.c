@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <string.h>
+
 FILE *pDosya;
 char kategoriler[7][50] = {"Atistirmalik", "Icecek", "Temel Gida", "Et Urunleri", "Temizlik & Ev Gerecleri", "Kisisel Bakim", "Sut & Kahvaltılık"};
 char sehirler[6][50] = {"Izmir", "Istanbul", "Bursa", "Ankara", "Antalya", "Adana"};
@@ -21,8 +22,7 @@ enum urunIslemleri
 {
     urungiris = 1,
     urunGuncelleSil,
-    urunGoruntule,
-    geriDonus
+    urunGoruntule
 };
 enum genelislemler
 {
@@ -39,21 +39,17 @@ struct tedarikci
 {
     int no;
     char ad[50], adres[100], sehir[50];
-} tedarikciListe;
-void dosyaGuncelle(int urunKodu, struct urun guncellenenUrun, int islem)
+} tedarikciListe, *guncellenenTedarikListe;
+void urunDosyaGuncelle(int urunKodu, struct urun guncellenenUrun, int islem)
 {
-    int structMiktari, i = 0, k;
+    int structMiktari, i = 0, k, len;
     struct urun okunanUrun;
     pDosya = fopen("urunListesi.txt", "r");
-    structMiktari = filelength(fileno(pDosya)) / sizeof(struct urun);
-    if (islem == silme)
-    {
-        guncellenenListe = malloc(sizeof(struct urun) * (structMiktari - 1));
-    }
-    else
-    {
-        guncellenenListe = malloc(sizeof(struct urun) * structMiktari);
-    }
+    fseek(pDosya, 0, SEEK_END);
+    structMiktari = ftell(pDosya);
+    rewind(pDosya);
+    structMiktari /= sizeof(struct urun);
+    guncellenenListe = malloc(sizeof(struct urun) * structMiktari);
 
     for (k = 0; k < structMiktari; k++)
     {
@@ -89,7 +85,48 @@ void dosyaGuncelle(int urunKodu, struct urun guncellenenUrun, int islem)
     free(guncellenenListe);
     fclose(pDosya);
 }
-
+void tedarikciDosyaGuncelle(int tedarikciNo, struct tedarikci guncellenenTedarikci, int islem)
+{
+    int i = 0, structSayisi, k;
+    struct tedarikci okunanTedarikci;
+    pDosya = fopen("tedarikciListesi.txt", "r");
+    fseek(pDosya, 0, SEEK_END);
+    structSayisi = ftell(pDosya);
+    structSayisi /= sizeof(struct tedarikci);
+    rewind(pDosya);
+    guncellenenTedarikListe = malloc(sizeof(struct tedarikci) * structSayisi);
+    for (k = 0; k < structSayisi; k++)
+    {
+        fread(&okunanTedarikci, sizeof(struct tedarikci), 1, pDosya);
+        if (okunanTedarikci.no != tedarikciNo)
+        {
+            guncellenenTedarikListe[i] = okunanTedarikci;
+            i++;
+        }
+        else
+        {
+            if (islem == guncelleme)
+            {
+                guncellenenTedarikListe[i] = guncellenenTedarikci;
+                i++;
+            }
+        }
+    }
+    fclose(pDosya);
+    if (islem == silme)
+    {
+        structSayisi--;
+    }
+    i = 0;
+    pDosya = fopen("tedarikciListesi.txt", "w");
+    for (k = 0; k < structSayisi; k++)
+    {
+        fwrite(&guncellenenTedarikListe[i], sizeof(struct tedarikci), 1, pDosya);
+        i++;
+    }
+    free(guncellenenTedarikListe);
+    fclose(pDosya);
+}
 void ekranUrunYaz(struct urun yazilanUrun)
 {
     printf("Urun kategorisi: %s\n", yazilanUrun.kategori);
@@ -104,7 +141,10 @@ int urunBul(int urunKod, struct urun *okunanUrun)
 {
     int structSayisi, i;
     pDosya = fopen("urunListesi.txt", "r");
-    structSayisi = filelength(fileno(pDosya)) / sizeof(struct urun);
+    fseek(pDosya, 0, SEEK_END);
+    structSayisi = ftell(pDosya);
+    rewind(pDosya);
+    structSayisi /= sizeof(struct urun);
     for (i = 0; i < structSayisi; i++)
     {
         fread(okunanUrun, sizeof(struct urun), 1, pDosya);
@@ -124,8 +164,12 @@ int urunleriOku()
     int i, structSayisi;
 
     pDosya = fopen("urunListesi.txt", "r");
-    structSayisi = filelength(fileno(pDosya)) / sizeof(struct urun);
-    if (structSayisi == 0)
+    fseek(pDosya, 0, SEEK_END);
+    structSayisi = ftell(pDosya);
+    structSayisi /= sizeof(struct urun);
+    rewind(pDosya);
+
+    if (structSayisi == 0 || pDosya == NULL)
     {
         printf("Dosya bos!\n\n");
         fclose(pDosya);
@@ -134,8 +178,8 @@ int urunleriOku()
 
     for (i = 0; i < structSayisi; i++)
     {
-        fread(&urunOkumaListe, sizeof(struct urun), 1, pDosya);
-        ekranUrunYaz(urunOkumaListe);
+        fread(&urunListesi, sizeof(struct urun), 1, pDosya);
+        ekranUrunYaz(urunListesi);
         printf("\n");
     }
     fclose(pDosya);
@@ -166,7 +210,7 @@ int urunSilme()
     scanf("%d", &komut);
     if (komut == 1)
     {
-        dosyaGuncelle(urunKod, silinicekUrun, silme);
+        urunDosyaGuncelle(urunKod, silinicekUrun, silme);
     }
     else
     {
@@ -202,7 +246,7 @@ int urunGuncelleme()
             switch (sayi)
             {
             case 1:
-                system("cls");
+
                 for (i = 0; i < 7; i++)
                 {
                     printf("%s (%d)\n", kategoriler[i], i + 1);
@@ -238,7 +282,7 @@ int urunGuncelleme()
                 break;
             }
             system("cls");
-            dosyaGuncelle(urunkod, guncellenenUrun, guncelleme);
+            urunDosyaGuncelle(urunkod, guncellenenUrun, guncelleme);
             printf("Urun guncellendi!\n\n");
         }
     }
@@ -277,7 +321,10 @@ int tedarikcileriOku()
 {
     int i, structSayisi;
     pDosya = fopen("tedarikciListesi.txt", "r");
-    structSayisi = filelength(fileno(pDosya)) / sizeof(struct tedarikci);
+    fseek(pDosya, 0, SEEK_END);
+    structSayisi = ftell(pDosya);
+    structSayisi /= sizeof(struct tedarikci);
+    rewind(pDosya);
     if (structSayisi == 0 || pDosya == NULL)
     {
         printf("Dosya bos!\n\n");
@@ -312,8 +359,8 @@ void tedarikciGiris()
     scanf("%d", &tedarikciListe.no);
     printf("Tedarikci adresi: ");
     scanf(" %[^\n]s", tedarikciListe.adres);
-    system("cls");
     dosyaTedarikciYaz();
+    system("cls");
     printf("Tedarikci girisi basarili!\n\n");
 }
 
@@ -343,6 +390,122 @@ void urunGiris()
     DosyaUrunYaz();
     system("cls");
     printf("Urun girisi basarılı!\n");
+}
+int tedarikciBul(int tedarikciNo, struct tedarikci *arananTedarikci)
+{
+    int i, structSayisi;
+    pDosya = fopen("tedarikciListesi.txt", "r");
+    fseek(pDosya, 0, SEEK_END);
+    structSayisi = ftell(pDosya);
+    structSayisi /= sizeof(struct tedarikci);
+    rewind(pDosya);
+    for (i = 0; i < structSayisi; i++)
+    {
+        fread(arananTedarikci, sizeof(struct tedarikci), 1, pDosya);
+        if (tedarikciNo == (*arananTedarikci).no)
+        {
+            fclose(pDosya);
+            return 1;
+        }
+    }
+    fclose(pDosya);
+    return 0;
+}
+
+int tedarikciGuncelleme()
+{
+    int tedarikciNo, komut, i, sehir, t;
+    struct tedarikci guncellenenTedarikci;
+    tedarikcileriOku();
+    printf("Tedarikci guncelleme sectiniz.\nGeri donmek icin 0 yaziniz\nGuncellemek istediginiz tedarikcinin numarasını yaziniz: ");
+    scanf("%d", &tedarikciNo);
+    if (tedarikciNo == 0)
+    {
+        system("cls");
+        return 0;
+    }
+    t = tedarikciBul(tedarikciNo, &guncellenenTedarikci);
+    if (t == 1)
+    {
+        system("cls");
+        ekranaTedarikciYaz(guncellenenTedarikci);
+        printf("Guncellemek istediginiz tedarikci bu mu? Evet (1) Hayır (2) ");
+        scanf("%d", &komut);
+        if (komut == 1)
+        {
+            system("cls");
+            ekranaTedarikciYaz(guncellenenTedarikci);
+            printf("Guncellemek istediginiz ozelligi seciniz\nTedarikci sehri (1)\nTedarikci ismi (2)\nTedarikci numarası (3)\nTedarikci adresi (4)\n");
+            scanf("%d", &komut);
+            switch (komut)
+            {
+            case 1:
+                printf("Yeni tedarikci sehri seciniz:\n");
+                for (i = 0; i < 6; i++)
+                {
+                    printf("%s (%d)", sehirler[i], i + 1);
+                    printf("\n");
+                }
+                scanf("%d", &sehir);
+                strcpy(guncellenenTedarikci.sehir, sehirler[sehir - 1]);
+                break;
+            case 2:
+                printf("Yeni tedarikci ismi giriniz: ");
+                scanf(" %[^\n]s", guncellenenTedarikci.ad);
+                break;
+            case 3:
+                printf("Yeni tedarikci numarası giriniz: ");
+                scanf("%d", &guncellenenTedarikci.no);
+                break;
+            case 4:
+                printf("Yeni tedarikci adresi giriniz: ");
+                scanf(" %[^\n]s", guncellenenTedarikci.adres);
+                break;
+            default:
+                break;
+            }
+            tedarikciDosyaGuncelle(tedarikciNo, guncellenenTedarikci, guncelleme);
+            system("cls");
+            printf("Tedarikci guncellendi!\n\n");
+        }
+        else
+        {
+            system("cls");
+            tedarikciGuncelleme();
+        }
+    }
+}
+int tedarikciSilme()
+{
+    int tedarikciNo, komut, i, sehir, t;
+    struct tedarikci guncellenenTedarikci;
+    tedarikcileriOku();
+    printf("Tedarikci silme sectiniz\nGeri donmek icin 0 yaziniz\nSilmek istediginiz tedarikcinin numarasını yaziniz: ");
+    scanf("%d", &tedarikciNo);
+    if (tedarikciNo == 0)
+    {
+        system("cls");
+        return 0;
+    }
+    t = tedarikciBul(tedarikciNo, &guncellenenTedarikci);
+    if (t = 1)
+    {
+        system("cls");
+        ekranaTedarikciYaz(guncellenenTedarikci);
+        printf("Silmek istediginiz tedarikci bu mu? Evet (1) Hayır (2) ");
+        scanf("%d", &komut);
+        if (komut == 1)
+        {
+            tedarikciDosyaGuncelle(tedarikciNo, guncellenenTedarikci, silme);
+            system("cls");
+            printf("Tedarikci silisi basarili!\n\n");
+        }
+        else
+        {
+            system("cls");
+            tedarikciSilme();
+        }
+    }
 }
 
 int main()
@@ -409,15 +572,36 @@ int main()
             if (tedarikciKomut == tedarikci_girisi)
             {
                 tedarikciGiris();
-                system("cls");
             }
             else if (tedarikciKomut == tedarikciGuncelleSil)
             {
+                system("cls");
+                tedarikcileriOku();
+                printf("Tedarikci guncellemek icin (1)\nTedarikci silmek icin (2)\nGeri donus (3)\n");
+                scanf("%d", &komut);
+                if (komut == 1)
+                {
+                    system("cls");
+                    tedarikciGuncelleme();
+                }
+                else if (komut == 2)
+                {
+                    system("cls");
+                    tedarikciSilme();
+                }
+                else
+                {
+                    system("cls");
+                }
             }
             else if (tedarikciKomut == tedarikciGoruntule)
             {
                 system("cls");
                 tedarikcileriOku();
+            }
+            else
+            {
+                system("cls");
             }
         }
         else if (komut == cikis)
